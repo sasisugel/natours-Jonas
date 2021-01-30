@@ -3,6 +3,7 @@
 # dependencies
 todo_list/node_modules
 todo_list_backend/node_modules
+todo_list_backend/config.env
 /.pnp
 .pnp.js
 
