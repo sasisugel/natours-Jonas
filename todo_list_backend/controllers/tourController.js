@@ -1,43 +1,21 @@
 const Tour = require('./../models/tourModel')
+const APIFeatures = require('./../utils/apiFeatures')
 
-// const tours = JSON.parse(fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`))
-
-// exports.checkId = (req, res, next, val) => {
-// 	console.log(`Tour id is: ${val}`)
-// 	const id = req.params.id*1
-// 	const tour = tours.find(tour => tour.id === id)
-
-// 	if (!tour) {
-// 		return res.status(400).json({
-// 			status: "failed",
-// 			message: "Invalid Id"
-// 		})
-// 	}
-// 	next()
-// }
-
-// exports.checkBody = (req, res, next) => {
-// 	if (!req.body.name || !req.body.price) {
-// 		return res.status(400).json({
-// 			status: 'failed',
-// 			message: 'missing tour name or price'
-// 		})
-// 	}
-// 	next()
-// }
+exports.aliasTopTours = (req, res, next) => {
+	req.query.limit = '5'
+	req.query.sort = '-ratingsAverage, price'
+	req.query.fields = 'name,price,ratingsAverage,difficulty,summary'
+	next()
+}
 
 exports.getAllTours = async (req, res) => {
-	console.log(`got from middleware is: ${req.modifiedId}`)
-	
 	try {
-		const queryObj = {...req.query}
-		const excludesFields = ['page', 'sort', 'limit', 'fields']
-		excludesFields.forEach(el => delete queryObj[el])
-
-		const query = Tour.find(queryObj)
-		const tours = await query
+		// execute query 
+		const features = new APIFeatures(Tour.find(), req.query).filter().sort().limitFields().paginate()
+		const tours = await features.query
 		res.status(200).json({
 			status: 'Success',
+			result: tours.length,
 			data: {
 				tours
 			}
@@ -114,6 +92,45 @@ exports.deleteTour = async (req, res) => {
 			status: "success",
 			message: "Tour deleted successfully!!!",
 			data: null
+		})
+	} catch (err) {
+		res.status(400).json({
+			status: 'Failed',
+			message: err
+		})
+	}
+}
+
+exports.getTourStats = async (req, res) => {
+	try {
+		const stats = await Tour.aggregate([
+			{
+				$match: {ratinsAverage: {$gte: 4.5}}
+			},
+			{
+				$group: {
+					_id: {$toUpper: '$difficulty'},
+					 numTours: {$sum: 1},
+					 numRatings: {$sum: '$ratingsQuantity'},
+					 avgRating: {$avg: '$ratinsAverage'},
+					 avgPrice: {$avg: '$price'},
+					 minPrice: {$min: '$price'},
+					 maxPrice: {$max: '$price'}
+				}
+			},
+			{
+				$sort: {avgPrice: 1}
+			},
+			// {
+			// 	$match: {_id: {$ne: 'EASY'}}
+			// }
+		])
+
+		res.status(200).json({
+			status: "success",
+			data: {
+				stats
+			}
 		})
 	} catch (err) {
 		res.status(400).json({

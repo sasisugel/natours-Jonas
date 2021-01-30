@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const slugify = require('slugify')
 
 const tourSchema = mongoose.Schema({
 	name: {
@@ -48,9 +49,40 @@ const tourSchema = mongoose.Schema({
 	images: [String],
 	createdAt: {
 		type: Date,
-		default: Date.now()
+		default: Date.now(),
+		select: false
 	},
-	startDates: [Date]
+	startDates: [Date],
+	secretTour: {
+		type: Boolean,
+		default: false
+	}
+})
+
+// document middleware: applicable for only save() and creat()
+tourSchema.pre('save', function (next) {
+	this.slugify = slugify(this.name, {lower: true})
+	next()
+})
+
+// query middleware
+// tourSchema.pre('find', function (next) {
+tourSchema.pre(/^find/, function (next) {
+	this.find({secretTour: {$ne: true}})
+
+	this.startingTime = Date.now()
+	next()
+})
+
+tourSchema.post(/^find/, function (doc, next) {
+	console.log(`Query took ${Date.now()-this.startingTime} milliseconds`)
+	next()
+})
+
+// aggregation middleware
+tourSchema.pre('aggregate', function (next) {
+	this.pipeline().unshift({$match: {secretTour: {$ne : true}}})
+	next()
 })
 
 const Tour = mongoose.model('Tour', tourSchema)
