@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcrypt')
@@ -24,7 +25,7 @@ const userSchema = mongoose.Schema({
 		type: String,
 		required: [true, 'Password is mandatory'],
 	},
-	confirmPassword: {
+	passwordConfirm: {
 		type: String,
 		required: [true, 'Confirm password is mandatory'],
 		validate: {
@@ -35,7 +36,9 @@ const userSchema = mongoose.Schema({
 			message: 'Passwords are not the same'
 		}
 	},
-	passwordChangedAt: Date
+	passwordChangedAt: Date,
+	passwordResetToken: String,
+	passwordResetExpire: Date
 })
 
 userSchema.pre('save', async function (next) {
@@ -43,12 +46,20 @@ userSchema.pre('save', async function (next) {
 	if (!this.isModified('password')) return next()
 
 	this.password = await bcrypt.hash(this.password, 12)
-	this.confirmPassword = undefined
+	this.passwordConfirm = undefined
 
 	next()
 })
 
+userSchema.pre('save', function (next) {
+	if (!this.isModified('password') || this.isNew) return next()
+
+	this.passwordChangedAt = Date.now()-1000
+	next()
+})
+
 userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
+	console.log(`candidatepassword is : ${candidatePassword}, user pass: ${userPassword}`)
 	return (await bcrypt.compare(candidatePassword, userPassword))
 }
 
@@ -58,6 +69,15 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
 		return JWTTimestamp < changedTimestamp
 	}
 	return false
+}
+
+userSchema.methods.createPasswordResetToken = function () {
+	const resetToken = crypto.randomBytes(32).toString('hex')
+
+	this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+	this.passwordResetExpire = Date.now()+10*60*1000
+
+	return resetToken
 }
 
 const User = mongoose.model('User', userSchema)
