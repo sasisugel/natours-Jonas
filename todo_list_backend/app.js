@@ -10,6 +10,7 @@ const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
 const tourRourter = require('./routes/tourRoutes')
 const userRourter = require('./routes/userRoutes')
+const reviewRoutes = require('./routes/reviewRoutes')
 
 const app = express()
 
@@ -53,6 +54,7 @@ app.use((req, res, next) => {
 
 app.use('/api/v1/tours', tourRourter)
 app.use('/api/v1/users', userRourter)
+app.use('/api/v1/reviews', reviewRoutes)
 
 app.all('*', (req, res, next) => {
 	// res.status(500).json({message: 'You are accessing wrong url!!!'})
