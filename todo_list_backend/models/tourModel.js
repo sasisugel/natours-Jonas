@@ -94,11 +94,17 @@ const tourSchema = mongoose.Schema({
 {
 	toJSON: {virtuals: true},
 	toObject: {virtuals: true}
-}
-)
+})
 
+// virtual middleware
 tourSchema.virtual('durationWeeks').get('/', function () {
 	return this.duration/7
+})
+
+tourSchema.virtual('reviews', {
+	ref: 'Review',
+	foreignField: 'tour',
+	localField: '_id'
 })
 
 // document middleware: applicable for only save() and creat()
