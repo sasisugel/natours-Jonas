@@ -1,22 +1,30 @@
 const express = require('express')
 const tourController = require('../controllers/tourController')
 const authController = require('../controllers/authController')
+// const reviewController = require('../controllers/reviewController')
+const reviewRouter = require('./../routes/reviewRoutes')
 
-const route = express.Router()
+const router = express.Router()
 // route.param('id', tourController.checkId)
 
-route.route('/top-5-cheap').get(tourController.aliasTopTours, tourController.getAllTours)
+// router.route('/:tourId/reviews')
+// 	.post(authController.protect, authController.restrictedTo('user'), reviewController.createReview)
 
-route.route('/tour-stats').get(tourController.getTourStats)
+// /* connect with review routes (multiple routes merge) */
+router.route('/:tourId/reviews', reviewRouter)
 
-route.route('/')
+router.route('/top-5-cheap').get(tourController.aliasTopTours, tourController.getAllTours)
+
+router.route('/tour-stats').get(tourController.getTourStats)
+
+router.route('/')
 	.get(authController.protect, tourController.getAllTours)
 	// .post(tourController.checkBody, tourController.createNewTour)
 	.post(tourController.createNewTour)
 
-route.route('/:id')
+router.route('/:id')
 	.get(tourController.getTour)
 	.patch(tourController.updateTour)
 	.delete(authController.protect, authController.restrictedTo('admin', 'lead-guide'), tourController.deleteTour)
 
-module.exports = route
+module.exports = router
